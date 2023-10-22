@@ -1,0 +1,73 @@
+<%- include('../includes/head.ejs') %>
+    <link rel="stylesheet" href="/css/cart.css">
+    </head>
+
+    <body>
+        <%- include('../includes/navigation.ejs') %>
+
+            <main>
+
+                <ul class="cart__item-list">
+
+                    <% products.forEach((product) => { %>
+                        <li class="cart__item">
+                            <h1>
+                                <%= product.productId.title %>
+                            </h1>
+                            <h2>Quantity:
+                                <%= product.quantity %>
+                            </h2>
+                        </li>
+                        <% }) %>
+                </ul>
+                <h2 class="centered">Total Price: $
+                    <%= totalPrice %>
+                </h2>
+                <div class="centered">
+                    <button class="btn" id="order-btn">ORDER</button>
+                    <script src="https://js.stripe.com/v3/"></script>
+                    <script>
+                        const stripe = Stripe('pk_test_51O1ZVUK7MbAW5EpIgtn2peH2LVArGFygY2n63Xexhf23WQ4VfQmqQrSxpewO0HtzsPP9MBgHAIpxE3bE9CWmFT7t00myhnmVD2');
+                        const orderButton = document.getElementById('order-btn');
+                        orderButton.addEventListener('click', () => {
+                            stripe.redirectToCheckout({
+                                    headers: {
+                                        Authorization: `Bearer ${process.env.STRIPE_KEY}`,
+                                        "Content-Type": "application/json",
+                                    },
+                                    sessionId: '<%= sessionId %>'
+                                })
+                                .then(function(result) {
+                                    // If `redirectToCheckout` fails due to a browser or network
+                                    // error, display the localized error message to your customer
+                                    // using `result.error.message`.
+                                    console.log(result.error.message);
+                                });
+                        });
+                        const handleCheckOut = async() => {
+                            const stripe = await getStripe();
+
+                            const response = await fetch("/api/stripe", {
+                                method: "POST",
+                                headers: {
+                                    Authorization: `Bearer ${process.env.STRIPE_KEY}`,
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify(cartItems),
+                            });
+
+                            if (response.statusCode === 500) return;
+
+                            const data = await response.json();
+
+                            toast.loading("Redirecting...");
+
+                            stripe.redirectToCheckout({
+                                sessionId: data.id
+                            });
+                        };
+                    </script>
+                </div>
+            </main>
+            <!--pk_test_51O1ZVUK7MbAW5EpIgtn2peH2LVArGFygY2n63Xexhf23WQ4VfQmqQrSxpewO0HtzsPP9MBgHAIpxE3bE9CWmFT7t00myhnmVD2-->
+            <%- include('../includes/end.ejs') %>
